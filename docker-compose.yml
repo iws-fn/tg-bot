@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: tg-bot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tg-bot-network
+
+  # pgAdmin Web Interface
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tg-bot-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_SERVER_MODE}
+    ports:
+      - "5050:80"
+    networks:
+      - tg-bot-network
+    depends_on:
+      - postgres
+
+  # Telegram Bot Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tg-bot-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tg-bot-network
+    # Optional: uncomment if you need to expose a port for health checks
+    # ports:
+    #   - "3000:3000"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  tg-bot-network:
+    driver: bridge
+
