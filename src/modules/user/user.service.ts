@@ -12,31 +12,36 @@ export class UserService {
     private userRepository: Repository<User>
   ) {}
 
+  private normalizeFio(fio: string): string {
+    return fio.trim().toLowerCase();
+  }
+
   async createOrUpdate(telegram_id: number, fio: string): Promise<User> {
     const telegramIdStr = telegram_id.toString();
+    const normalizedFio = this.normalizeFio(fio);
 
     // First, try to find user by FIO (exact match)
-    let user = await this.findByFio(fio);
+    let user = await this.findByFio(normalizedFio);
 
     if (user) {
       // User exists, link telegram_id if not already set
       if (user.telegram_id && user.telegram_id !== telegramIdStr) {
         this.logger.warn(
-          `User with FIO "${fio}" already has telegram_id ${user.telegram_id}, updating to ${telegramIdStr}`
+          `User with FIO "${normalizedFio}" already has telegram_id ${user.telegram_id}, updating to ${telegramIdStr}`
         );
       }
       user.telegram_id = telegramIdStr;
-      this.logger.log(`Linking telegram_id ${telegramIdStr} to user: ${fio}`);
+      this.logger.log(`Linking telegram_id ${telegramIdStr} to user: ${normalizedFio}`);
     } else {
       // Try to find by telegram_id
       user = await this.findByTelegramId(telegram_id);
       if (user) {
-        user.fio = fio;
-        this.logger.log(`Updating FIO for user ${telegramIdStr}: ${fio}`);
+        user.fio = normalizedFio;
+        this.logger.log(`Updating FIO for user ${telegramIdStr}: ${normalizedFio}`);
       } else {
         // Create new user
-        user = this.userRepository.create({ telegram_id: telegramIdStr, fio });
-        this.logger.log(`Creating new user ${telegramIdStr}: ${fio}`);
+        user = this.userRepository.create({ telegram_id: telegramIdStr, fio: normalizedFio });
+        this.logger.log(`Creating new user ${telegramIdStr}: ${normalizedFio}`);
       }
     }
 
@@ -68,7 +73,8 @@ export class UserService {
   }
 
   async findByFio(fio: string): Promise<User | null> {
-    return await this.userRepository.findOne({ where: { fio } });
+    const normalizedFio = this.normalizeFio(fio);
+    return await this.userRepository.findOne({ where: { fio: normalizedFio } });
   }
 
   async hasSecretSanta(userId: number): Promise<boolean> {
@@ -112,16 +118,18 @@ export class UserService {
       throw new Error(`User with telegram_id ${telegram_id} not found`);
     }
 
+    const normalizedReceiverFio = this.normalizeFio(receiverFio);
+
     // Find or create receiver by FIO
-    let receiver = await this.findByFio(receiverFio);
+    let receiver = await this.findByFio(normalizedReceiverFio);
     if (!receiver) {
       // Create new receiver (without assigning a receiver to avoid circular link)
       receiver = this.userRepository.create({
-        fio: receiverFio,
+        fio: normalizedReceiverFio,
         telegram_id: null,
       });
       await this.userRepository.save(receiver);
-      this.logger.log(`Created new receiver: ${receiverFio}`);
+      this.logger.log(`Created new receiver: ${normalizedReceiverFio}`);
     }
 
     // Link receiver to user

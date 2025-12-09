@@ -63,7 +63,7 @@ export class BotHandlerService {
         return { hasReceiver: true };
       } else {
         // No receiver assigned yet, ask for recipient FIO
-        await ctx.reply(`🎄 Отлично! Ваше ФИО: ${fio}\n\nТеперь введите ФИО вашего тайного получателя:`);
+        await ctx.reply(`🎄 Отлично! Ваше ФИО: ${fio}\n\nТеперь введите ФИО вашего тайного получателя:\n\n💡 Пример: Петров Петр Петрович`);
         
         return { hasReceiver: false };
       }
