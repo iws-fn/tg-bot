@@ -1,227 +1,273 @@
-# Telegraf + NestJS Bot Template
+# 🎅 Secret Santa Telegram Bot
 
-A simple Telegram bot template built with NestJS and Telegraf.
+Telegram бот для организации игры "Тайный Санта" с анонимной пересылкой QR-кодов подарков между участниками.
 
-## Features
+## ✨ Возможности
 
-- NestJS framework integration
-- Telegraf library for Telegram Bot API
-- `/start` command handler with FIO collection
-- REST API for bulk user upload
-- TypeORM integration with PostgreSQL
-- User persistence in database
-- Automatic Telegram ID linking by FIO match
-- Environment-based configuration
-- TypeScript support with validation
+- 🎄 Регистрация участников с назначением тайного получателя
+- 🎁 Анонимная пересылка QR-кодов подарков
+- 📱 Поддержка всех типов контента (фото, видео, документы, текст)
+- 🔔 Автоматические уведомления когда получатель регистрируется
+- 🔒 Полная анонимность - никто не знает кто их тайный санта
+- 🐳 Docker ready для простого деплоя
+- 🗄️ PostgreSQL база данных
+- 🔧 pgAdmin для управления базой данных
 
-## Prerequisites
+## 🚀 Быстрый старт
 
-- Node.js (v18 or higher)
-- pnpm package manager
-- PostgreSQL database
-- Telegram Bot Token (get it from [@BotFather](https://t.me/botfather))
+### Вариант 1: Docker (Рекомендуется)
 
-## Installation
-
-1. Clone the repository:
-
+1. **Клонируйте репозиторий:**
 ```bash
 git clone <repository-url>
 cd tg-bot
 ```
 
-2. Install dependencies:
+2. **Создайте `.env` файл:**
+```bash
+cp env.example .env
+```
 
+3. **Отредактируйте `.env`:**
+- Получите токен бота у [@BotFather](https://t.me/botfather)
+- Вставьте его в `BOT_TOKEN`
+- Установите пароль для базы данных в `DATABASE_PASSWORD`
+
+4. **Запустите:**
+```bash
+docker-compose up -d
+```
+
+5. **Готово!** 🎉
+- Бот работает в Telegram
+- pgAdmin доступен на http://localhost:5050
+
+### Вариант 2: Локальная разработка
+
+1. **Установите зависимости:**
 ```bash
 pnpm install
 ```
 
-3. Set up PostgreSQL database:
-
+2. **Настройте PostgreSQL:**
 ```bash
-# Create a database named 'telegram_bot' (or use your preferred name)
-createdb telegram_bot
+createdb tg_bot
 ```
 
-4. Create a `.env` file in the root directory:
-
-```bash
-BOT_TOKEN=your_bot_token_here
-
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_DATABASE=telegram_bot
+3. **Создайте `.env`:**
+```env
+BOT_TOKEN=your_bot_token
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=tg_bot
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+NODE_ENV=development
 ```
 
-Replace the values with your actual bot token and database credentials.
-
-## Running the Bot
-
-### Development mode
-
+4. **Запустите:**
 ```bash
 pnpm start:dev
 ```
 
-### Production mode
+## 📖 Как использовать
 
-```bash
-# Build the project
-pnpm build
+### Для участников:
 
-# Run the compiled code
-pnpm start:prod
+1. **Регистрация:**
+   - Отправьте `/start` боту
+   - Введите свое ФИО (например: "Иван Иванов")
+   - Введите ФИО вашего тайного получателя (например: "Петр Петров")
+   - Получите подтверждение и инструкции
+
+2. **Отправка QR-кода подарка:**
+   - Отправьте `/send` боту
+   - Отправьте QR-код или фото/видео вашего подарка
+   - Получатель получит его анонимно
+
+3. **Проверка статуса:**
+   - Отправьте `/start` повторно
+   - Увидите статус вашего получателя и тайного санты
+
+### Как это работает:
+
+```
+Пользователь A → регистрируется → указывает получателя "B"
+Пользователь B → регистрируется → A получает уведомление
+Пользователь A → /send → отправляет QR-код → B получает анонимно
 ```
 
-## Project Structure
+**Важно:** Связи односторонние! A → B, B → C, C → A (круговая цепочка)
+
+## 🐳 Docker команды
+
+```bash
+# Запустить
+docker-compose up -d
+
+# Остановить
+docker-compose down
+
+# Логи
+docker-compose logs -f
+
+# Пересобрать после изменений кода
+docker-compose up --build -d
+
+# Перезапустить бота
+docker-compose restart app
+```
+
+## 🔧 pgAdmin (Управление БД)
+
+После запуска `docker-compose up -d`:
+
+1. Откройте http://localhost:5050
+2. Войдите (email/пароль из `.env`)
+3. Добавьте сервер:
+   - **Host:** `postgres`
+   - **Port:** `5432`
+   - **Username:** значение из `DATABASE_USER`
+   - **Password:** значение из `DATABASE_PASSWORD`
+   - **Database:** значение из `DATABASE_NAME`
+
+## 📋 Структура проекта
 
 ```
 tg-bot/
 ├── src/
 │   ├── modules/
 │   │   ├── bot/
-│   │   │   ├── bot.module.ts      # Bot module
-│   │   │   └── bot.update.ts      # Bot command handlers
+│   │   │   ├── bot-handler.service.ts  # Бизнес-логика обработчиков
+│   │   │   ├── bot.module.ts           # Bot модуль
+│   │   │   └── bot.update.ts           # Telegram обработчики команд
 │   │   └── user/
-│   │       ├── dto/
-│   │       │   └── bulk-upload.dto.ts  # DTOs for API
 │   │       ├── entities/
-│   │       │   └── user.entity.ts      # User entity
-│   │       ├── user.controller.ts      # REST API controller
-│   │       ├── user.module.ts          # User module
-│   │       └── user.service.ts         # User service
-│   ├── app.module.ts              # Root application module
-│   └── main.ts                    # Application entry point
-├── .env                           # Environment variables (create this)
-├── env-template.txt               # Environment template
-├── package.json                   # Dependencies and scripts
-└── tsconfig.json                  # TypeScript configuration
+│   │       │   └── user.entity.ts      # User сущность
+│   │       ├── user.module.ts          # User модуль
+│   │       └── user.service.ts         # User сервис
+│   ├── app.module.ts                   # Корневой модуль
+│   └── main.ts                         # Точка входа
+├── Dockerfile                          # Docker образ
+├── docker-compose.yml                  # Docker Compose конфигурация
+├── .dockerignore                       # Исключения для Docker
+├── env.example                         # Шаблон переменных окружения
+├── DEPLOYMENT.md                       # Полная инструкция по деплою
+└── README.md                           # Этот файл
 ```
 
-## Available Bot Commands
+## 🎯 Доступные команды бота
 
-- `/start` - Start the bot and register your FIO
+- `/start` - Регистрация или просмотр статуса
+- `/send` - Отправить QR-код/подарок тайному получателю
 
-## REST API
+## 🔐 Переменные окружения
 
-The bot also exposes a REST API on port 3000:
+Все переменные настраиваются в `.env` файле:
 
-- `POST /users/bulk-upload` - Upload users in bulk
-- `GET /users` - Get all users
+```env
+# Telegram Bot
+BOT_TOKEN=                    # Токен от BotFather
 
-## How It Works
+# Database
+DATABASE_HOST=postgres        # postgres для Docker, localhost для локальной разработки
+DATABASE_PORT=5432
+DATABASE_NAME=tg_bot
+DATABASE_USER=postgres
+DATABASE_PASSWORD=            # Установите надежный пароль
 
-### User Registration Flow
+# pgAdmin
+PGADMIN_DEFAULT_EMAIL=admin@admin.com
+PGADMIN_DEFAULT_PASSWORD=admin
+PGADMIN_SERVER_MODE=False     # False для dev, True для prod
 
-1. **Pre-upload users (optional):**
-   - Use the REST API to upload a list of users with their FIOs
-   - These users will be created in the database without Telegram IDs
-
-2. **Telegram Registration:**
-   - User sends `/start` to the bot
-   - Bot asks for their full name (FIO)
-   - User enters their FIO
-   - Bot searches for existing user by exact FIO match:
-     - **If found:** Links the Telegram ID to existing user
-     - **If not found:** Creates a new user with Telegram ID and FIO
-   - Bot confirms registration
-   - **If user has a receiver who is already registered:** Receiver gets notified about the registration
-
-### REST API Endpoints
-
-**POST /users/bulk-upload** - Upload multiple users
-
-Request body:
-```json
-{
-  "users": [
-    { 
-      "fio": "Иванов Иван Иванович",
-      "receiver_fio": "Петров Петр Петрович"
-    },
-    { 
-      "fio": "Петров Петр Петрович",
-      "receiver_fio": "Сидоров Сидор Сидорович"
-    },
-    {
-      "fio": "Сидоров Сидор Сидорович"
-    }
-  ]
-}
+# Application
+NODE_ENV=production           # development или production
 ```
 
-Note: `receiver_fio` is optional. It creates a one-to-one relationship where each sender can have one receiver.
+## 📊 База данных
 
-Response:
-```json
-{
-  "created": 3,
-  "total": 3,
-  "linked": 2,
-  "message": "Successfully processed 3 users. Created: 3, Skipped: 0, Receiver links: 2"
-}
+### Структура таблицы User:
+
+- `id` - Уникальный ID
+- `telegram_id` - Telegram ID пользователя (nullable до регистрации)
+- `fio` - ФИО участника
+- `receiverId` - ID тайного получателя (кому дарим)
+
+### Связи:
+
+Каждый пользователь может иметь одного получателя (`user.receiver`), создавая цепочку тайного санты.
+
+## 🚀 Деплой на продакшн
+
+Подробная инструкция в [DEPLOYMENT.md](DEPLOYMENT.md)
+
+**Кратко:**
+```bash
+git clone <repo>
+cd tg-bot
+cp env.example .env
+nano .env  # Заполните переменные
+docker-compose up -d
 ```
 
-**GET /users** - Get all users
+## 🛠️ Разработка
 
-Response:
-```json
-[
-  {
-    "id": 1,
-    "telegram_id": 123456789,
-    "fio": "Иванов Иван Иванович",
-    "receiver": {
-      "id": 2,
-      "telegram_id": null,
-      "fio": "Петров Петр Петрович"
-    }
-  },
-  {
-    "id": 2,
-    "telegram_id": null,
-    "fio": "Петров Петр Петрович",
-    "receiver": {
-      "id": 3,
-      "telegram_id": null,
-      "fio": "Сидоров Сидор Сидорович"
-    }
-  },
-  {
-    "id": 3,
-    "telegram_id": null,
-    "fio": "Сидоров Сидор Сидорович",
-    "receiver": null
-  }
-]
-```
+### Добавление новых команд:
 
-## Adding New Commands
-
-To add new commands, edit `src/modules/bot/bot.update.ts`:
+Редактируйте `src/modules/bot/bot.update.ts`:
 
 ```typescript
-import { Update, Ctx, Start, Command } from 'nestjs-telegraf';
-import { Context } from 'telegraf';
-
-@Update()
-export class BotUpdate {
-  @Start()
-  async start(@Ctx() ctx: Context) {
-    await ctx.reply('Welcome! 👋\n\nThis is a simple Telegraf + NestJS bot.');
-  }
-
-  @Command('help')
-  async help(@Ctx() ctx: Context) {
-    await ctx.reply('Available commands:\n/start - Start the bot\n/help - Show this message');
-  }
+@Command('mycommand')
+async myCommand(@Ctx() ctx: Context) {
+  await ctx.reply('Ответ на команду');
 }
 ```
 
-## License
+### Добавление обработчиков контента:
+
+```typescript
+@On('photo')
+async onPhoto(@Ctx() ctx: Context) {
+  // Обработка фотографий
+}
+```
+
+## 📝 Логи
+
+```bash
+# Все логи
+docker-compose logs -f
+
+# Только бот
+docker-compose logs -f app
+
+# Только база данных
+docker-compose logs -f postgres
+```
+
+## 🔍 Troubleshooting
+
+**Бот не подключается к базе:**
+- Проверьте что все переменные `DATABASE_*` в `.env` заполнены
+- Проверьте логи: `docker-compose logs postgres`
+
+**Бот не отвечает в Telegram:**
+- Проверьте что `BOT_TOKEN` правильный
+- Проверьте логи: `docker-compose logs -f app`
+
+**pgAdmin не открывается:**
+- Проверьте что порт 5050 не занят
+- Измените порт в `docker-compose.yml` если нужно
+
+## 📄 Лицензия
 
 MIT
 
+## 👨‍💻 Технологии
+
+- [NestJS](https://nestjs.com/) - Backend framework
+- [Telegraf](https://telegraf.js.org/) - Telegram Bot framework
+- [TypeORM](https://typeorm.io/) - ORM для работы с БД
+- [PostgreSQL](https://www.postgresql.org/) - База данных
+- [Docker](https://www.docker.com/) - Контейнеризация

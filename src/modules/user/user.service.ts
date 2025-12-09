@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { In, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { User } from "./entities/user.entity";
 
 @Injectable()
@@ -133,61 +133,4 @@ export class UserService {
     return (await this.findById(user.id)) as User;
   }
 
-  async findByFios(fios: string[]): Promise<User[]> {
-    return await this.userRepository.find({ where: { fio: In(fios) } });
-  }
-
-  async bulkCreate(
-    users: { fio: string; receiver_fio?: string }[]
-  ): Promise<{ created: number; linked: number }> {
-    let created = 0;
-    let linked = 0;
-
-    // First pass: create all users
-    for (const userData of users) {
-      const existingUser = await this.findByFio(userData.fio);
-
-      if (!existingUser) {
-        const user = this.userRepository.create({
-          fio: userData.fio,
-          telegram_id: null,
-        });
-        await this.userRepository.save(user);
-        created++;
-        this.logger.log(`Created user: ${userData.fio}`);
-      } else {
-        this.logger.log(`User already exists: ${userData.fio}, skipping`);
-      }
-    }
-
-    // Second pass: link receivers by FIO
-    for (const userData of users) {
-      if (userData.receiver_fio) {
-        const sender = await this.findByFio(userData.fio);
-        const receiver = await this.findByFio(userData.receiver_fio);
-
-        if (sender && receiver) {
-          sender.receiver = receiver;
-          await this.userRepository.save(sender);
-          linked++;
-          this.logger.log(`Linked ${userData.fio} -> ${userData.receiver_fio}`);
-        } else {
-          if (!sender) {
-            this.logger.warn(`Sender not found: ${userData.fio}`);
-          }
-          if (!receiver) {
-            this.logger.warn(`Receiver not found: ${userData.receiver_fio}`);
-          }
-        }
-      }
-    }
-
-    return { created, linked };
-  }
-
-  async findAll(): Promise<User[]> {
-    return await this.userRepository.find({
-      relations: ["receiver"],
-    });
-  }
 }
